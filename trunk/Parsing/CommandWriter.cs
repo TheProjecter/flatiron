@@ -41,11 +41,11 @@ namespace Flatiron.Parsing
                     break;
                 case TemplateCommandType.OutputToSection:
                     cmd.Body = cmd.Body.Trim();
-                    WriteOutputToSection(string.IsNullOrEmpty(cmd.Body) ? TemplateScope.DefaultSection : cmd.Body);
+                    WriteOutputToSection(string.IsNullOrEmpty(cmd.Body) ? null : cmd.Body);
                     break;
                 case TemplateCommandType.WriteChildSection:
                     cmd.Body = cmd.Body.Trim();
-                    WriteWriteChildSection(string.IsNullOrEmpty(cmd.Body) ? TemplateScope.DefaultSection : cmd.Body);
+                    WriteWriteChildSection(string.IsNullOrEmpty(cmd.Body) ? null : cmd.Body);
                     break;
             }
             cmd.ExecutableLines = lines;

@@ -37,7 +37,9 @@ namespace Flatiron.IronRuby
 
             var executable = scope.Template.Executable;
 
-            ScriptSource source = engine.CreateScriptSourceFromString(executable);
+            // have to pass in this bogus file name so that IronRuby will give us line numbers 
+            // in the backtrace when exceptions occur at runtime. stupid!
+            ScriptSource source = engine.CreateScriptSourceFromString(executable, "omg_rly.rb", SourceCodeKind.File);
 
             // want to cache this...
             //CompiledCode c = source.Compile();
@@ -48,25 +50,24 @@ namespace Flatiron.IronRuby
                 //c.Execute(scope);
                 source.Execute(scriptScope);
             }
-            catch (SyntaxErrorException e)
-            {
-                throw new TemplateEvaluationException(scope.Template, e.Line, e);
-            }
             catch (Exception e)
             {
-                // TODO: extract line numbers from runtime exceptions
-                // currently no one knows how: http://www.ruby-forum.com/topic/173123
-                // seriously? wtf IronRuby...
-
-                //RubyExceptionData red = RubyExceptionData.GetInstance(e);
-
-                //foreach (object o in red.Backtrace) 
-                //    Console.WriteLine(o);
-
-                //Console.WriteLine("Error! " + red.Message);
-
-                throw new Exception("Error while evaluating " + scope.Template, e);
+                throw new TemplateEvaluationException(scope.Template, GetTemplateLine(e), e);
             }       
+        }
+
+        int GetTemplateLine(Exception e)
+        {
+            if (e is SyntaxErrorException)
+                return (e as SyntaxErrorException).Line;
+            else
+            {
+                RubyExceptionData red = RubyExceptionData.GetInstance(e);
+                int line = 0;
+                // first line of backtrace is "<bogus file name>:<line number>"
+                int.TryParse(red.Backtrace[0].ToString().Split(':')[1], out line);
+                return line;
+            }
         }
     }
 }

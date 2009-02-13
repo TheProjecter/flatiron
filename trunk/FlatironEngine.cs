@@ -4,18 +4,18 @@ using Flatiron.IronRuby;
 
 namespace Flatiron
 {
-    public class Flatiron
+    public class FlatironEngine
     {
-        public DirectoryInfo TemplateRoot { get; set; }
+        public string TemplateRoot { get; set; }
 
         ILanguageSupport support;
 
-        public Flatiron()
+        public FlatironEngine()
         {
             support = new IronRubySupport();
         }
 
-        public Flatiron(DirectoryInfo templateRoot) : this()
+        public FlatironEngine(string templateRoot) : this()
         {
             TemplateRoot = templateRoot;
         }
@@ -48,14 +48,14 @@ namespace Flatiron
 
         /// <summary>
         /// Override to turn a string passed to TemplateScope.SetParentTemplate/Include into a Template instance.
-        /// Default implementation instantiates a new Template with a backing file relative to the requesting Template's backing file,
-        /// or relative to Root if requester is null.
-        /// You might, for example, want to cache Template instances so they don't have to be reparsed all the time.
+        /// Default implementation instantiates a new Template with a backing file relative to the requesting 
+        /// Template's backing file, or relative to Root if requester is null. You might, for example, want to 
+        /// cache Template instances so they don't have to be reparsed all the time.
         /// </summary>
         public virtual Template ResolveTemplate(string template, TemplateScope requester)
         {
-            string relativeTo = requester == null ? TemplateRoot.FullName : requester.Template.BackingFile.DirectoryName;
-            return new Template(new FileInfo(Path.Combine(relativeTo, template)));
+            string relativeTo = requester == null ? TemplateRoot : Path.GetDirectoryName(requester.Template.BackingFile);
+            return new Template(Path.Combine(relativeTo, template));
         }
 
         internal void EvaluateInternal(TemplateScope scope, TemplateScope includer, TemplateScope child)
