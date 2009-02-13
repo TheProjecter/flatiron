@@ -12,7 +12,7 @@ namespace Flatiron
     {
         public static readonly string DefaultSection = "__default";
 
-        Flatiron flatiron;
+        FlatironEngine flatiron;
         Dictionary<string, StringWriter> sectionWriters; // allow templates to write to named sections
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace Flatiron
         /// </summary>
         public TemplateScope Child { get; internal set; }
 
-        internal TemplateScope(Flatiron flatiron, Template template, Dictionary<string, object> variables)
+        internal TemplateScope(FlatironEngine flatiron, Template template, Dictionary<string, object> variables)
         {
             this.flatiron = flatiron;
             Template = template;
@@ -120,10 +120,15 @@ namespace Flatiron
         {
             Template parent = flatiron.ResolveTemplate(file, this);
 
-            if (parent == Template)
-                throw new Exception("Scope's parent template cannot be the same as the scope's template");
-
-            Parent = new TemplateScope(flatiron, parent, Variables);
+            if (parent == null)
+                Parent = null;
+            else if (parent == Template) 
+                // i'm a little iffy on this check. there may be legitimate times when you want to 
+                // do this, but if i was to let you, you could cause gnarly stack overflows and be 
+                // confused as to why that was happening... so no recursion support for now.
+                throw new Exception("Scope's parent template cannot be the same as the scope's template (\"no recursion for you!\")");
+            else
+                Parent = new TemplateScope(flatiron, parent, Variables);
         }
 
         #endregion

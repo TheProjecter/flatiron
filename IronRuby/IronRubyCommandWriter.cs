@@ -48,7 +48,7 @@ namespace Flatiron.IronRuby
         protected override void WriteOutputToSection(string expression)
         {
             Write("scope.output_to_section(");
-            Write(expression);
+            Write(expression ?? "'" + TemplateScope.DefaultSection + "'");
             Write(")");
             Write(newline);
         }
@@ -56,7 +56,7 @@ namespace Flatiron.IronRuby
         protected override void WriteWriteChildSection(string expression)
         {
             Write("scope.write_child_section(");
-            Write(expression);
+            Write(expression ?? "'" + TemplateScope.DefaultSection + "'");
             Write(")");
             Write(newline);
         }

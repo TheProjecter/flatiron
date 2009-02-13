@@ -10,16 +10,16 @@ namespace Flatiron
     /// </summary>
     public class Template
     {
-        public FileInfo BackingFile { get; private set; }
+        public string BackingFile { get; private set; }
         public string Executable { get; private set; }
-        public bool NeedsParsing { get { lock (this) return lastModified != BackingFile.LastWriteTime; } }
+        public bool NeedsParsing { get { lock (this) return lastModified != File.GetLastWriteTime(BackingFile); } }
 
         DateTime lastModified;
         TemplateCommand[] commands;
 
-        public Template(FileInfo file)
+        public Template(string backingFile)
         {
-            BackingFile = file;
+            BackingFile = backingFile;
         }
 
         public void Parse(CommandWriter writer)
@@ -28,7 +28,7 @@ namespace Flatiron
             {
                 List<TemplateCommand> cmds = new List<TemplateCommand>();
 
-                using (CommandReader reader = new CommandReader(BackingFile.OpenRead()))
+                using (CommandReader reader = new CommandReader(File.OpenRead(BackingFile)))
                 {
                     TemplateCommand cmd;
                     while ((cmd = reader.ReadCommand()) != null)
@@ -42,40 +42,43 @@ namespace Flatiron
 
                 Executable = writer.Executable;
 
-                lastModified = BackingFile.LastWriteTime;
+                lastModified = File.GetLastWriteTime(BackingFile);
             }
         }
 
         /// <summary>
         /// Convert a line number in the executable template code to a line number in the user's template file.
         /// </summary>
-        public int ExecutableToTemplateLine(int execLine)
+        public int ExecutableToTemplateLine(int line)
         {
-            int execLines = 0;
-            int trouble = 0;
+            int indexOfCommand = 0; // the command corresponding to 'line'
+            int executableLines = 0;
 
             for(int i = 0; i < commands.Length; i++)
             {
                 TemplateCommand cmd = commands[i];
 
-                execLines += cmd.ExecutableLines;
+                // accumulate the number of lines commands take up
+                executableLines += cmd.ExecutableLines;
 
-                if (execLines >= execLine)
+                // if we've reached the line in question, we're done
+                if (executableLines >= line)
                 {
-                    trouble = i;
+                    indexOfCommand = i;
                     break;
                 }
             }
 
-            int tempLines = 0;
+            int templateLines = 1; // start at line 1
 
-            for (int i = 0; i <= trouble; i++)
+            // accumulate the number of lines the commands take up in the template source
+            for (int i = 0; i <= indexOfCommand; i++)
             {
                 TemplateCommand cmd = commands[i];
-                tempLines += cmd.TemplateLines;
+                templateLines += cmd.TemplateLines;
             }
 
-            return tempLines += execLine - execLines;
+            return templateLines += line - executableLines;
         }
 
         public override string ToString()

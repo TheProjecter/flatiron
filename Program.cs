@@ -5,7 +5,7 @@ namespace Flatiron
 {
     class Program
     {
-        static Flatiron flatiron;
+        static FlatironEngine flatiron;
 
         public static void Main(string[] args)
         {
@@ -15,41 +15,42 @@ namespace Flatiron
                 return;
             }
 
-            flatiron = new Flatiron(new DirectoryInfo(args[0]));
+            flatiron = new FlatironEngine(args[0]);
 
-            ProcessDirectory(new DirectoryInfo(args[0]), new DirectoryInfo(args[1]));
+            ProcessDirectory(args[0], args[1]);
         }
 
-        static void ProcessDirectory(DirectoryInfo srcDir, DirectoryInfo destDir)
+        static void ProcessDirectory(string srcDir, string destDir)
         {
             Console.WriteLine("Entering " + srcDir);
 
-            foreach (var file in srcDir.GetFiles())
+            foreach (var file in Directory.GetFiles(srcDir))
             {
-                if (file.Name.Contains(".tmpl.") || file.Name.Contains(".inc.") || 
-                    file.Name.StartsWith(".") || (file.Attributes & FileAttributes.Hidden) != 0)
+                if (file.Contains(".tmpl.") || file.Contains(".inc.") || 
+                    file.StartsWith(".") || (File.GetAttributes(file) & FileAttributes.Hidden) != 0)
                     continue;
 
-                FileInfo destFile;
+                string destFile;
 
-                if (file.Name == "index.html")
-                    destFile = new FileInfo(Path.Combine(destDir.FullName, "index.html"));
+                if (file == "index.html")
+                    destFile = Path.Combine(destDir, "index.html");
                 else
                 {
-                    var dir = Path.Combine(destDir.FullName, file.Name.Replace(".html", ""));
+                    var dir = Path.Combine(destDir, file.Replace(".html", ""));
                     Directory.CreateDirectory(dir);
-                    destFile = new FileInfo(Path.Combine(dir, "index.html"));
+                    destFile = Path.Combine(dir, "index.html");
                 }
 
-                if (!destFile.Directory.Exists)
-                    destFile.Directory.Create();
+                string destFileDir = Path.GetDirectoryName(destFile);
+                if (!Directory.Exists(destFileDir))
+                    Directory.CreateDirectory(destFileDir);
 
-                if (destFile.Exists)
-                    destFile.Delete();
+                if (File.Exists(destFile))
+                    File.Delete(destFile);
 
-                var result = flatiron.Evaluate(file.FullName);
+                var result = flatiron.Evaluate(file);
 
-                using (var w = new StreamWriter(destFile.OpenWrite()))
+                using (var w = new StreamWriter(File.OpenWrite(destFile)))
                 {
                     w.Write(result);
                     w.Flush();
@@ -58,9 +59,9 @@ namespace Flatiron
 
             Console.WriteLine("Leaving " + srcDir);
 
-            foreach (var directory in srcDir.GetDirectories())
-                if (!directory.Name.StartsWith("."))
-                    ProcessDirectory(directory, new DirectoryInfo(Path.Combine(destDir.FullName, directory.Name)));
+            foreach (var directory in Directory.GetDirectories(srcDir))
+                if (!directory.StartsWith("."))
+                    ProcessDirectory(directory, Path.Combine(destDir, directory));
         }
     }
 }

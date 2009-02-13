@@ -53,7 +53,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Flatiron.cs" />
+    <Compile Include="FlatironEngine.cs" />
+    <Compile Include="FlatironException.cs" />
     <Compile Include="IronRuby\IronRubyCommandWriter.cs" />
     <Compile Include="IronRuby\IronRubySupport.cs" />
     <Compile Include="Program.cs" />
@@ -62,7 +63,6 @@
     <Compile Include="Parsing\StringExtensions.cs" />
     <Compile Include="Parsing\TemplateCommand.cs" />
     <Compile Include="Template.cs" />
-    <Compile Include="TemplateEvaluationException.cs" />
     <Compile Include="ILanguageSupport.cs" />
     <Compile Include="TemplateScope.cs" />
   </ItemGroup>
