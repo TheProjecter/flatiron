@@ -9,46 +9,56 @@ namespace Flatiron
 
         public static void Main(string[] args)
         {
-            if (args.Length == 0)
+            if (args.Length != 2 && args.Length != 3)
             {
-                Console.WriteLine("usage: flatiron <template dir> <output dir>");
+                Console.WriteLine("usage: flatiron [--pretty-urls] <template dir> <output dir>");
                 return;
+            }
+            bool prettyUrls = false;
+
+            if (args[0] == "--pretty-urls")
+            {
+                prettyUrls = true;
+                args = new string[] { args[1], args[2] };
             }
 
             flatiron = new FlatironEngine(args[0]);
 
-            ProcessDirectory(args[0], args[1]);
+            ProcessDirectory(args[0], args[1], prettyUrls);
         }
 
-        static void ProcessDirectory(string srcDir, string destDir)
+        static void ProcessDirectory(string srcDir, string destDir, bool prettyUrls)
         {
             Console.WriteLine("Entering " + srcDir);
 
-            foreach (var file in Directory.GetFiles(srcDir))
+            foreach (var filePath in Directory.GetFiles(srcDir))
             {
-                if (file.Contains(".tmpl.") || file.Contains(".inc.") || 
-                    file.StartsWith(".") || (File.GetAttributes(file) & FileAttributes.Hidden) != 0)
+                var fileName = Path.GetFileName(filePath);
+
+                if (fileName.Contains(".tmpl.") || fileName.Contains(".inc.") || 
+                    fileName.StartsWith(".") || (File.GetAttributes(filePath) & FileAttributes.Hidden) != 0)
                     continue;
 
                 string destFile;
 
-                if (file == "index.html")
-                    destFile = Path.Combine(destDir, "index.html");
+                if (fileName == "index.html" || !prettyUrls)
+                    destFile = Path.Combine(destDir, fileName);
                 else
                 {
-                    var dir = Path.Combine(destDir, file.Replace(".html", ""));
+                    var dir = Path.Combine(destDir, fileName.Replace(".html", ""));
                     Directory.CreateDirectory(dir);
                     destFile = Path.Combine(dir, "index.html");
                 }
 
                 string destFileDir = Path.GetDirectoryName(destFile);
+
                 if (!Directory.Exists(destFileDir))
                     Directory.CreateDirectory(destFileDir);
 
                 if (File.Exists(destFile))
                     File.Delete(destFile);
 
-                var result = flatiron.Evaluate(file);
+                var result = flatiron.Evaluate(fileName);
 
                 using (var w = new StreamWriter(File.OpenWrite(destFile)))
                 {
@@ -61,7 +71,7 @@ namespace Flatiron
 
             foreach (var directory in Directory.GetDirectories(srcDir))
                 if (!directory.StartsWith("."))
-                    ProcessDirectory(directory, Path.Combine(destDir, directory));
+                    ProcessDirectory(directory, Path.Combine(destDir, directory), prettyUrls);
         }
     }
 }
