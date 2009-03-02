@@ -1,0 +1,27 @@
+﻿- How to make templates -
+
+-- The basics --
+drop into code:
+<% do_stuff() %> 
+
+output the value of the expression:
+<%= person.name %>
+
+evaluate the file named by evaluating the expression, insert the content from its default section:
+<%include 'navigation.inc.html' %>
+
+-- Parenting --
+
+Every template can have a parent. The parent can insert named 'sections' defined within the child template into itself. This is similar to Rails' view/layout metaphor, except you're not constrained to a two-deep structure--your layouts can have layouts.
+
+Set the parent of the current template:
+<%set-parent 'default_layout.tmpl.html' %>
+
+Similar to Rails' "content_for" mechanism, this syntax causes the template to start writing to the section named by evaluating the expression:
+<%set-section 'right_sidebar' %>
+Start writing to the default section again:
+<%set-section%>
+
+Similar to Rails' 'yield' mechanism, this syntax inserts the child section named by evaluating the expression.
+<%get-section 'head' %>
+<%get-section %>

@@ -4,6 +4,7 @@ using IronRuby;
 using IronRuby.Runtime;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
+using System.Threading;
 
 namespace Flatiron.IronRuby
 {
@@ -52,11 +53,13 @@ namespace Flatiron.IronRuby
             }
             catch (Exception e)
             {
-                throw new TemplateEvaluationException(scope.Template, GetTemplateLine(e), e);
+                // need to worry about ThreadAbortException?
+                FlatironExceptionData.AssociateInstance(e, scope.Template, GetExecutableLine(e));
+                throw;
             }       
         }
 
-        int GetTemplateLine(Exception e)
+        int GetExecutableLine(Exception e)
         {
             if (e is SyntaxErrorException)
                 return (e as SyntaxErrorException).Line;

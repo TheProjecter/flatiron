@@ -20,13 +20,6 @@ namespace Flatiron
             TemplateRoot = templateRoot;
         }
 
-        public string Evaluate(Template template, Dictionary<string, object> variables)
-        {
-            var scope = new TemplateScope(this, template, variables);
-            EvaluateInternal(scope, null, null);
-            return scope.GetContentsOfSection(TemplateScope.DefaultSection);
-        }
-
         #region Evaluate - Convenience overloads
 
         public string Evaluate(string template)
@@ -45,6 +38,13 @@ namespace Flatiron
         }
 
         #endregion
+
+        public string Evaluate(Template template, Dictionary<string, object> variables)
+        {
+            var scope = new TemplateScope(this, template, variables);
+            EvaluateInternal(scope, null, null);
+            return scope.GetContentsOfSection(TemplateScope.DefaultSection);
+        }
 
         /// <summary>
         /// Override to turn a string passed to TemplateScope.SetParentTemplate/Include into a Template instance.
