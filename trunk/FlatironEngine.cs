@@ -10,15 +10,18 @@ namespace Flatiron
 
         ILanguageSupport support;
 
-        public FlatironEngine()
+        public FlatironEngine(bool debug)
         {
-            support = new IronRubySupport();
+            support = new IronRubySupport(debug);
         }
 
-        public FlatironEngine(string templateRoot) : this()
+        public FlatironEngine(bool debug, string templateRoot) : this(debug)
         {
             TemplateRoot = templateRoot;
         }
+
+        public FlatironEngine() : this(false) { }
+        public FlatironEngine(string templateRoot) : this(false, templateRoot) { }
 
         #region Evaluate - Convenience overloads
 
@@ -41,9 +44,11 @@ namespace Flatiron
 
         public string Evaluate(Template template, Dictionary<string, object> variables)
         {
-            var scope = new TemplateScope(this, template, variables);
-            EvaluateInternal(scope, null, null);
-            return scope.GetContentsOfSection(TemplateScope.DefaultSection);
+            using (var scope = new TemplateScope(this, template, variables))
+            {
+                EvaluateInternal(scope, null, null);
+                return scope.GetContentsOfSection(TemplateScope.DefaultSection);
+            }
         }
 
         /// <summary>
@@ -76,6 +81,7 @@ namespace Flatiron
                 EvaluateInternal(scope.Parent, null, scope);
                 // set our output to whatever the parent's output was, since the parent is 'wrapping' us.
                 scope.SetSectionWriter(TemplateScope.DefaultSection, scope.Parent.GetSectionWriter(TemplateScope.DefaultSection));
+                scope.Parent.Child = null;
             }
         }
     }

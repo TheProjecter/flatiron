@@ -10,6 +10,16 @@ namespace Flatiron.IronRuby
 {
     class IronRubySupport : ILanguageSupport
     {
+        [ThreadStatic]
+        static ScriptEngine engine; // temporary hack! 
+
+        bool debug;
+
+        public IronRubySupport(bool debug)
+        {
+            this.debug = debug;
+        }
+
         public CommandWriter CreateCommandWriter()
         {
             return new IronRubyCommandWriter();
@@ -17,18 +27,27 @@ namespace Flatiron.IronRuby
 
         public void Evaluate(TemplateScope scope)
         {
-            // TODO: keep around what can be kept around to make this process
-            // more efficient
-            ScriptRuntimeSetup runtimeSetup = new ScriptRuntimeSetup();
-            runtimeSetup.DebugMode = true;
-            LanguageSetup rubySetup = Ruby.CreateRubySetup();
-            rubySetup.ExceptionDetail = true;
-            runtimeSetup.LanguageSetups.Add(rubySetup);
-            ScriptRuntime runtime = new ScriptRuntime(runtimeSetup);
-            ScriptEngine engine = runtime.GetRubyEngine();
+            if (engine == null)
+            {
+                // temporary hack! how do these objects (ScriptRuntime, ScriptEngine) actually work??
 
+                ScriptRuntimeSetup runtimeSetup = new ScriptRuntimeSetup();
+                LanguageSetup rubySetup = Ruby.CreateRubySetup();
+
+                if (debug)
+                {
+                    runtimeSetup.DebugMode = true;
+                    rubySetup.ExceptionDetail = true;
+                }
+
+                runtimeSetup.LanguageSetups.Add(rubySetup);
+
+                engine = new ScriptRuntime(runtimeSetup).GetRubyEngine();
+            }
+
+            // for some reason the engine keeps track of these instances (wtf)...
             ScriptScope scriptScope = engine.CreateScope();
-            
+            // ...so we have to unset this later.
             scriptScope.SetVariable("scope", scope);
 
 
@@ -37,33 +56,39 @@ namespace Flatiron.IronRuby
                     scriptScope.SetVariable(key, scope.Variables[key]);
 
             var executable = scope.Template.Executable;
+            
+            ScriptSource source;
+            if (debug)
+                // have to pass in this bogus file name so that IronRuby will give us line numbers 
+                // in the backtrace when exceptions occur at runtime. stupid!
+                source = engine.CreateScriptSourceFromString(executable, "omg_rly.rb", SourceCodeKind.File);
+            else
+                source = engine.CreateScriptSourceFromString(executable, SourceCodeKind.Statements);
 
-            // have to pass in this bogus file name so that IronRuby will give us line numbers 
-            // in the backtrace when exceptions occur at runtime. stupid!
-            ScriptSource source = engine.CreateScriptSourceFromString(executable, "omg_rly.rb", SourceCodeKind.File);
-
-            // want to cache this...
-            //CompiledCode c = source.Compile();
+            if(!(scope.Template.CompiledExecutable is CompiledCode))
+                scope.Template.CompiledExecutable = source.Compile();
 
             try
             {
-                // ...and do this:
-                //c.Execute(scope);
-                source.Execute(scriptScope);
+                ((CompiledCode)scope.Template.CompiledExecutable).Execute(scriptScope);
             }
             catch (Exception e)
             {
                 // need to worry about ThreadAbortException?
                 FlatironExceptionData.AssociateInstance(e, scope.Template, GetExecutableLine(e));
                 throw;
-            }       
+            }
+            finally
+            {
+                scriptScope.RemoveVariable("scope");
+            }
         }
 
         int GetExecutableLine(Exception e)
         {
             if (e is SyntaxErrorException)
                 return (e as SyntaxErrorException).Line;
-            else
+            else if (debug)
             {
                 RubyExceptionData red = RubyExceptionData.GetInstance(e);
                 int line = 0;
@@ -71,6 +96,7 @@ namespace Flatiron.IronRuby
                 int.TryParse(red.Backtrace[0].ToString().Split(':')[1], out line);
                 return line;
             }
+            else return -1;
         }
     }
 }
