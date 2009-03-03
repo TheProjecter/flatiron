@@ -32,7 +32,7 @@ namespace Flatiron.IronRuby
                 // temporary hack! how do these objects (ScriptRuntime, ScriptEngine) actually work??
 
                 ScriptRuntimeSetup runtimeSetup = new ScriptRuntimeSetup();
-                LanguageSetup rubySetup = Ruby.CreateRubySetup();
+                LanguageSetup rubySetup = Ruby.CreateLanguageSetup();
 
                 if (debug)
                 {
@@ -42,7 +42,7 @@ namespace Flatiron.IronRuby
 
                 runtimeSetup.LanguageSetups.Add(rubySetup);
 
-                engine = new ScriptRuntime(runtimeSetup).GetRubyEngine();
+                engine = new ScriptRuntime(runtimeSetup).GetEngine("ruby");
             }
 
             // for some reason the engine keeps track of these instances (wtf)...
