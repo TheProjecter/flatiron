@@ -42,6 +42,7 @@ namespace Flatiron
                 commands = cmds.ToArray();
 
                 Executable = writer.Executable;
+                CompiledExecutable = null;
 
                 lastModified = File.GetLastWriteTime(BackingFile);
             }
