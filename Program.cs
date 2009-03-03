@@ -22,7 +22,7 @@ namespace Flatiron
                 args = new string[] { args[1], args[2] };
             }
 
-            flatiron = new FlatironEngine(args[0]);
+            flatiron = new FlatironEngine(true, args[0]);
 
             ProcessDirectory(args[0], args[1], prettyUrls);
         }

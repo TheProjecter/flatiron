@@ -8,7 +8,7 @@ namespace Flatiron
     /// <summary>
     /// Represents a request to render a template. Handles includes and parenting.
     /// </summary>
-    public class TemplateScope
+    public class TemplateScope : IDisposable
     {
         public static readonly string DefaultSection = "__default";
 
@@ -52,6 +52,18 @@ namespace Flatiron
             Variables = variables;
             sectionWriters = new Dictionary<string,StringWriter>();
             OutputToSection(DefaultSection);
+        }
+
+        public void Dispose()
+        {
+            //foreach (var key in sectionWriters.Keys)
+            //    sectionWriters[key].Dispose();
+            sectionWriters = null;
+            
+            if(Parent != null)
+                // since we allocated the parent (in SetParentTemplate)...
+                Parent.Dispose();
+            Parent = null;
         }
 
         internal string GetContentsOfSection(string section)
@@ -109,8 +121,8 @@ namespace Flatiron
             if (include == null)
                 throw new Exception("Could not find file for inclusion: " + file);
 
-            TemplateScope includeScope = new TemplateScope(flatiron, include, Variables);
-            flatiron.EvaluateInternal(includeScope, this, null);
+            using(var includeScope = new TemplateScope(flatiron, include, Variables))
+                flatiron.EvaluateInternal(includeScope, this, null);
         }
 
         /// <summary>
@@ -132,5 +144,12 @@ namespace Flatiron
         }
 
         #endregion
+
+
+
+        ~TemplateScope()
+        {
+            Console.WriteLine("destroying scope for " + Template);
+        }
     }
 }

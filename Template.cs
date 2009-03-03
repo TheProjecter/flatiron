@@ -12,6 +12,7 @@ namespace Flatiron
     {
         public string BackingFile { get; private set; }
         public string Executable { get; private set; }
+        public object CompiledExecutable { get; set; }
         public bool NeedsParsing { get { lock (this) return lastModified != File.GetLastWriteTime(BackingFile); } }
 
         DateTime lastModified;
