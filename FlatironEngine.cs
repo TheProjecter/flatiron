@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using Flatiron.IronRuby;
+using System;
 
 namespace Flatiron
 {
@@ -10,13 +11,11 @@ namespace Flatiron
 
         ILanguageSupport support;
 
-        public FlatironEngine(bool debug)
+        public FlatironEngine(bool debug) : this(debug, Environment.CurrentDirectory) { }
+
+        public FlatironEngine(bool debug, string templateRoot)
         {
             support = new IronRubySupport(debug);
-        }
-
-        public FlatironEngine(bool debug, string templateRoot) : this(debug)
-        {
             TemplateRoot = templateRoot;
         }
 
@@ -71,7 +70,8 @@ namespace Flatiron
                 template.Parse(support.CreateCommandWriter());
 
             // if we were included, we want to write to the includer's output.
-            if (includer != null) scope.SetSectionWriter(TemplateScope.DefaultSection, includer.Output);
+            if (includer != null)
+                scope.SetSectionWriter(TemplateScope.DefaultSection, includer.Output);
 
             support.Evaluate(scope);
 

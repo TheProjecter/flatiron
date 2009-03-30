@@ -8,23 +8,24 @@ namespace Flatiron.Parsing
 
         internal static int GetNumLines(this string str)
         {
-            int i = 0;
+            int index = 0;
             int result = 0;
-            bool foundNoTokens = false;
+            bool foundTokens = true;
 
-            while (i < str.Length && !foundNoTokens)
+            while (index < str.Length && foundTokens)
             {
-                foundNoTokens = true;
                 foreach (string t in newlineTokens)
                 {
-                    int j = str.IndexOf(t, i);
+                    int j = str.IndexOf(t, index);
                     if (j != -1)
                     {
-                        foundNoTokens = false;
-                        i = j + t.Length;
+                        foundTokens = true;
+                        index = j + t.Length;
                         result++;
                         break;
                     }
+                    else
+                        foundTokens = false;
                 }
             }
             return result;

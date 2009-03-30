@@ -65,11 +65,12 @@ namespace Flatiron.IronRuby
             else
                 source = engine.CreateScriptSourceFromString(executable, SourceCodeKind.Statements);
 
-            if(!(scope.Template.CompiledExecutable is CompiledCode))
-                scope.Template.CompiledExecutable = source.Compile();
 
             try
             {
+                if (!(scope.Template.CompiledExecutable is CompiledCode))
+                    scope.Template.CompiledExecutable = source.Compile();
+
                 ((CompiledCode)scope.Template.CompiledExecutable).Execute(scriptScope);
             }
             catch (Exception e)

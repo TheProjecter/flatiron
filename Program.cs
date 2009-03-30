@@ -40,7 +40,6 @@ namespace Flatiron
                     continue;
 
                 string destFile;
-
                 if (fileName == "index.html" || !prettyUrls)
                     destFile = Path.Combine(destDir, fileName);
                 else
@@ -58,7 +57,23 @@ namespace Flatiron
                 if (File.Exists(destFile))
                     File.Delete(destFile);
 
-                var result = flatiron.Evaluate(fileName);
+                Console.WriteLine(filePath + " -> ");
+
+                string result;
+
+                try
+                {
+                    result = flatiron.Evaluate(fileName);
+                }
+                catch (Exception e)
+                {
+                    var fed = FlatironExceptionData.GetInstance(e);
+                    if (fed == null) throw;
+                    throw new Exception("Error evaluating " + fed.Template + " (line " + fed.Line + "): " + e.Message, e);
+                }
+
+
+                Console.WriteLine("    " + destFile);
 
                 using (var w = new StreamWriter(File.OpenWrite(destFile)))
                 {
