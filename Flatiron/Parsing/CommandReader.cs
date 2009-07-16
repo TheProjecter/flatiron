@@ -6,6 +6,7 @@ using System.Text;
 
 namespace Flatiron.Parsing
 {
+    // this shit is so janky.
     class CommandReader : IDisposable
     {
         StreamReader reader;
