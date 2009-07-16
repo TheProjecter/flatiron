@@ -27,7 +27,7 @@ namespace Flatiron
         
         /// <summary>
         /// Gets the StringWriter for the current section.
-        /// </summary>
+        /// </summary>;
         public StringWriter Output { get; private set; }
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace Flatiron
 
         ~TemplateScope()
         {
-            Console.WriteLine("destroying scope for " + Template);
+            //Console.WriteLine("destroying scope for " + Template);
         }
     }
 }
