@@ -9,18 +9,17 @@ namespace Flatiron
     {
         public string TemplateRoot { get; set; }
 
+        Dictionary<string, Template> templates;
         ILanguageSupport support;
 
-        public FlatironEngine(bool debug) : this(debug, Environment.CurrentDirectory) { }
-
-        public FlatironEngine(bool debug, string templateRoot)
+        public FlatironEngine() : this(false) { }
+        public FlatironEngine(bool debug) : this(Environment.CurrentDirectory, debug) { }
+        public FlatironEngine(string templateRoot) : this(templateRoot, false) { }
+        public FlatironEngine(string templateRoot, bool debug)
         {
             support = new IronRubySupport(debug);
             TemplateRoot = templateRoot;
         }
-
-        public FlatironEngine() : this(false) { }
-        public FlatironEngine(string templateRoot) : this(false, templateRoot) { }
 
         #region Evaluate - Convenience overloads
 
@@ -51,15 +50,26 @@ namespace Flatiron
         }
 
         /// <summary>
-        /// Override to turn a string passed to TemplateScope.SetParentTemplate/Include into a Template instance.
+        /// Override to turn a string into a Template instance. Requester is non-null if we are resolving
+        /// from a call to TemplateScope.SetParentTemplate/Include.
         /// Default implementation instantiates a new Template with a backing file relative to the requesting 
-        /// Template's backing file, or relative to Root if requester is null. You might, for example, want to 
-        /// cache Template instances so they don't have to be reparsed all the time.
+        /// Template's backing file, or relative to Root if requester is null.
         /// </summary>
         public virtual Template ResolveTemplate(string template, TemplateScope requester)
         {
             string relativeTo = requester == null ? TemplateRoot : Path.GetDirectoryName(requester.Template.BackingFile);
-            return new Template(Path.Combine(relativeTo, template));
+            return GetTemplate(Path.Combine(relativeTo, template));
+        }
+
+        internal Template GetTemplate(string templateFile)
+        {
+            if (templates == null)
+                templates = new Dictionary<string, Template>();
+
+            var fullName = Path.GetFullPath(templateFile);
+            return templates.ContainsKey(fullName) ?
+                templates[fullName] :
+                (templates[fullName] = new Template(templateFile));
         }
 
         internal void EvaluateInternal(TemplateScope scope, TemplateScope includer, TemplateScope child)
@@ -67,7 +77,12 @@ namespace Flatiron
             Template template = scope.Template;
 
             if (template.NeedsParsing)
+            {
+                Console.WriteLine("reparsing " + template);
                 template.Parse(support.CreateCommandWriter());
+            }
+            else Console.WriteLine("not reparsing " + template);
+
 
             // if we were included, we want to write to the includer's output.
             if (includer != null)
