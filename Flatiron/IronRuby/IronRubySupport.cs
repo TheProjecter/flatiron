@@ -10,14 +10,28 @@ namespace Flatiron.IronRuby
 {
     class IronRubySupport : ILanguageSupport
     {
-        [ThreadStatic]
-        static ScriptEngine engine; // temporary hack! 
+        ScriptRuntime runtime;
+        ScriptEngine rubyEngine;
 
         bool debug;
 
         public IronRubySupport(bool debug)
         {
             this.debug = debug;
+
+            ScriptRuntimeSetup runtimeSetup = new ScriptRuntimeSetup();
+            LanguageSetup rubySetup = Ruby.CreateRubySetup();
+
+            if (debug)
+            {
+                runtimeSetup.DebugMode = true;
+                rubySetup.ExceptionDetail = true;
+            }
+
+            runtimeSetup.LanguageSetups.Add(rubySetup);
+
+            runtime = new ScriptRuntime(runtimeSetup); // can in theory be kept around
+            rubyEngine = runtime.GetEngine("ruby"); // so can this
         }
 
         public CommandWriter CreateCommandWriter()
@@ -27,51 +41,36 @@ namespace Flatiron.IronRuby
 
         public void Evaluate(TemplateScope scope)
         {
-            if (engine == null)
-            {
-                // temporary hack! how do these objects (ScriptRuntime, ScriptEngine) actually work??
+            var executable = scope.Template.Executable;
+            ScriptSource source;
 
-                ScriptRuntimeSetup runtimeSetup = new ScriptRuntimeSetup();
-                LanguageSetup rubySetup = Ruby.CreateLanguageSetup();
-
-                if (debug)
-                {
-                    runtimeSetup.DebugMode = true;
-                    rubySetup.ExceptionDetail = true;
-                }
-
-                runtimeSetup.LanguageSetups.Add(rubySetup);
-
-                engine = new ScriptRuntime(runtimeSetup).GetEngine("ruby");
-            }
-
+            if (debug)
+                // have to pass in this bogus file name so that IronRuby will give us line numbers 
+                // in the backtrace when exceptions occur at runtime. stupid!
+                source = rubyEngine.CreateScriptSourceFromString(executable, "omg_rly.rb", SourceCodeKind.File);
+            else
+                source = rubyEngine.CreateScriptSourceFromString(executable, SourceCodeKind.Statements);
+            
+            
             // for some reason the engine keeps track of these instances (wtf)...
-            ScriptScope scriptScope = engine.CreateScope();
+            ScriptScope scriptScope = runtime.CreateScope();
             // ...so we have to unset this later.
             scriptScope.SetVariable("scope", scope);
 
 
             if (scope.Variables != null) 
-                foreach (var key in scope.Variables.Keys)
-                    scriptScope.SetVariable(key, scope.Variables[key]);
-
-            var executable = scope.Template.Executable;
-            
-            ScriptSource source;
-            if (debug)
-                // have to pass in this bogus file name so that IronRuby will give us line numbers 
-                // in the backtrace when exceptions occur at runtime. stupid!
-                source = engine.CreateScriptSourceFromString(executable, "omg_rly.rb", SourceCodeKind.File);
-            else
-                source = engine.CreateScriptSourceFromString(executable, SourceCodeKind.Statements);
-
+                foreach (var pair in scope.Variables)
+                    scriptScope.SetVariable(pair.Key, pair.Value);
 
             try
             {
-                if (!(scope.Template.CompiledExecutable is CompiledCode))
-                    scope.Template.CompiledExecutable = source.Compile();
+                // latest DLR/IronRuby breaks the executing of compiled code somehow.
+                //if (!(scope.Template.CompiledExecutable is CompiledCode))
+                //    scope.Template.CompiledExecutable = source.Compile();
+                //((CompiledCode)scope.Template.CompiledExecutable).Execute(scriptScope);
 
-                ((CompiledCode)scope.Template.CompiledExecutable).Execute(scriptScope);
+                source.Execute(scriptScope);
+                
             }
             catch (Exception e)
             {
@@ -93,9 +92,10 @@ namespace Flatiron.IronRuby
             {
                 RubyExceptionData red = RubyExceptionData.GetInstance(e);
                 int line = 0;
-                // first line of backtrace is "<bogus file name>:<line number>"
-                int.TryParse(red.Backtrace[0].ToString().Split(':')[1], out line);
-                return line;
+                // first line of backtrace is "<bogus file name>:<line number>" (no longer works with DLR .91)
+                // int.TryParse(red.Backtrace[0].ToString().Split(':')[1], out line);
+                // return line;
+                return -1;
             }
             else return -1;
         }
